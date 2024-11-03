@@ -24,6 +24,6 @@ my_most_recent_grade = session.get_grades(top=1)[0]["waarde"]
 
 print("Schedule:", my_schedule)
 print("Most Recent Grade:", my_most_recent_grade)
-'''
+```
 With MagisterPy, you can access and manage your Magister account directly from Python, automating repetitive tasks and integrating your school data into your projects. We hope you find it helpful!
 More functionality to come!
