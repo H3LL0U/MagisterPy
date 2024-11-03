@@ -117,6 +117,7 @@ class LoginRequestsSender():
         response = request_session.get(f"https://accounts.magister.net/challenges/tenant/search?sessionId={session_id}&key={school_name}")
         return response.json()[0]["id"]
     def set_school(self,request_session:requests.Session,school_name,main_payload) ->requests.Response:
+
         tenant_id = self.search_for_tenant_id(request_session,school_name, main_payload["sessionId"])
         main_payload["tenant"] = tenant_id
 
