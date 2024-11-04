@@ -24,20 +24,30 @@ class MagisterSession():
     def _logMessage(self,msg:str):
         if self.recieve_log:
             print(msg)
+    
 
-    def login(self,school_name:str,username:str,password:str) -> bool:
+
+    def input_school(self, school_name:str) ->None|requests.Response:
         '''
-        logs the user into their account
+        Sets up a session by inputting the school name. This is the **first step** in the login sequence 
+        and must be called before `input_username()` and `input_password()`.
 
-        returns:
-        True -> if user logged in successfully
-        False -> if user wasn't able to login
+        Parameters:
+            school_name (str): The name of the school to authenticate against.
 
-        params:
-        school_name -> a string of school name (not case sensitive. It sets the first school from the list that magister provides)
-        username -> a string of a username (should be exact)
-        password -> a string with the password of the user (should be exact)
+        Usage:
+            This method is the **first step** of the login process. It must be called before 
+            `input_username()` and `input_password()` to initialize the session.
+
+        Returns:
+            requests.Response: if the school is found and session is successfully initiated.
+            None: if the school is not found or there’s an issue in the school lookup.
+
+        Example:
+            session.input_school("MySchoolName")
         '''
+
+
         #Initializing the login session
         url_login_page = "https://accounts.magister.net/"
 
@@ -66,31 +76,100 @@ class MagisterSession():
             response = self.request_sender.set_school(request_session=self.session,school_name=school_name,main_payload=self.main_payload)
         except requests.exceptions.JSONDecodeError:
             self._logMessage("Could not find the school")
-            return
-        
-            
+            return 
+        return response
+    def input_username(self,username:str) -> None|requests.Response:
+        '''
+    Sets the username for the current session. This is the **second step** in the login sequence 
+    and must be called after `input_school()` but before `input_password()`.
 
-        #username
+    Parameters:
+        username (str): The username for the account.
+
+    Usage:
+        This function must be called **after `input_school()`** and **before `input_password()`** to 
+        authenticate the username.
+
+    Returns:
+        requests.Response: if the username is accepted.
+        None: if the username is not found or if there’s an issue during authentication.
+
+    Example:
+        session.input_username("myusername")
+    '''
+
+
         response = self.request_sender.set_username(request_session=self.session,username=username,main_payload=self.main_payload)
         if response.status_code != 200:
             self._logMessage("Could not find the username")
-            return
+            return None
+        return response
+    def input_password(self,password:str) -> None|requests.Response:
+        '''
+        Sets the password for the session and finalizes the login process. This is the **third and final step** 
+        in the login sequence and must be called after `input_school()` and `input_username()`.
 
-        #password
-        
+        Upon success, this method retrieves and stores essential session variables like `profile_auth_token`, 
+        `api_url`, `app_auth_token`, `account_id`, and `person_id` for further interactions with the API.
+
+        Parameters:
+            password (str): The password associated with the username.
+
+        Usage:
+            This function is the **final step** in the login process and should only be called **after 
+            `input_school()` and `input_username()`**.
+
+        Returns:
+            requests.Response: if the password is correct and login is successful.
+            None: if the password is incorrect or if there’s a login cooldown.
+
+        Example:
+            session.input_password("mypassword")
+        '''
         response = self.request_sender.set_password(request_session=self.session,password=password,main_payload=self.main_payload)
         if response.status_code !=200:
             self._logMessage("Incorrect password or the password input is on cooldown")
             return
-
+        #setup for variables
         self.profile_auth_token = self.request_sender.get_profile_auth_token(request_session=self.session)
         self.api_url = self.request_sender.get_api_url(request_session=self.session,profile_auth_token=self.profile_auth_token)
         self.app_auth_token = self.request_sender.get_app_auth_token(request_session=self.session,api_url=self.api_url)
-
-
         self.account_id = self.request_sender.get_accountid(request_session=self.session,app_auth_token=self.app_auth_token,api_url=self.api_url)
         self.person_id = self.request_sender.get_personid(request_session=self.session,app_auth_token=self.app_auth_token,api_url=self.api_url,account_id=self.account_id)
+
         self._logMessage("you have successfully logged in!")
+        return response
+    def login(self,school_name:str,username:str,password:str) -> bool:
+        '''
+        logs the user into their account
+
+        returns:
+        True -> if user logged in successfully
+        False -> if user wasn't able to login
+
+        params:
+        school_name -> a string of school name (not case sensitive. It sets the first school from the list that magister provides)
+        username -> a string of a username (should be exact)
+        password -> a string with the password of the user (should be exact)
+        '''
+        #Inputting the school
+        input_school_response = self.input_school(school_name=school_name)
+        
+        if not input_school_response:
+            return False
+            
+
+        #username
+        input_username_response = self.input_username(username=username)
+        if not input_username_response:
+            return False
+        #password
+        input_password_response = self.input_password(password=password)
+        if not input_password_response:
+            return False
+        
+
+
 
     def get_schedule(self, _from:str, to:str) -> list[dict]:
         '''
