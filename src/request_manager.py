@@ -1,6 +1,6 @@
 import requests
 from urllib.parse import urlparse, parse_qs
-
+from bs4 import BeautifulSoup
 
 class LoginRequestsSender():
     
@@ -150,4 +150,16 @@ class LoginRequestsSender():
 
         response = request_session.post(url=url,json=payload,headers=headers, cookies=request_session.cookies)
         return response
+    def extract_redirect_url_from_html(self,html_content:str) ->str:
+        soup = BeautifulSoup(html_content, 'html.parser')
+
+        # Find the script tag with defer attribute
+        script_tag = soup.find('script', {'defer': 'defer'})
+
+        # Extract the src attribute
+        if script_tag and 'src' in script_tag.attrs:
+            script_src = script_tag['src']
+            return script_src
+        else:
+            return None
     

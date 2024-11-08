@@ -11,7 +11,7 @@ class MagisterSession():
         self.session = requests.Session()
         self.profile_auth_token = None #auth token for the redirect page
         self.app_auth_token = None #auth token for the main app
-        self.authcode = "72f0e355703a44e5a9"
+        self.authcode = "1ca5d248"
         self.sessionid = None
         self.returnurl = None
         self.main_payload = None
@@ -62,7 +62,14 @@ class MagisterSession():
 
         self.sessionid = parse_qs(urlparse(response.url).query).get('sessionId', [None])[0]
         self.returnurl = parse_qs(urlparse(response.url).query).get('returnUrl', [None])[0]
-        self.authcode = "72f0e355703a44e5a9"
+
+        javascript_redirect_url = self.request_sender.extract_redirect_url_from_html(response.text)
+        '''
+        #pseudocode
+        response = self.session.get(f"https://accounts.magister.net/{javascript_redirect_url}")
+        self.authcode = self.request_sender.extract_authcode_from_javascript(response.text)
+        '''
+        self.authcode = "1ca5d248" #gets rotated TODO: figure out a way to extract it from the javascript
 
         self.main_payload = {
         'authCode': self.authcode,
@@ -74,6 +81,8 @@ class MagisterSession():
         #school
         try:
             response = self.request_sender.set_school(request_session=self.session,school_name=school_name,main_payload=self.main_payload)
+            if response.status_code !=200:
+                self._logMessage("Could not find the school")
         except requests.exceptions.JSONDecodeError:
             self._logMessage("Could not find the school")
             return 
