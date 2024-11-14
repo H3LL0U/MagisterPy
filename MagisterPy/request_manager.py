@@ -1,7 +1,7 @@
 import requests
 from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup
-
+from .jsparser import *
 class LoginRequestsSender():
     
 
@@ -38,7 +38,7 @@ class LoginRequestsSender():
         if response.status_code == 200:
             response_link = response.json()["links"]["account"]["href"]
             account_id = response_link[response_link.rfind("/")+1:]
-            #print(response.json())
+            
             return account_id
 
     def get_personid(self,request_session:requests.Session, app_auth_token,api_url,account_id):
@@ -162,4 +162,7 @@ class LoginRequestsSender():
             return script_src
         else:
             return None
+    def extract_dynamic_authcode(self,js_content):
+        return JsParser().get_authcode_from_js(js_content=js_content)
+    
     

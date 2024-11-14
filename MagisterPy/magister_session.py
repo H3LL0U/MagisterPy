@@ -1,6 +1,6 @@
 import requests
 from urllib.parse import urlparse, parse_qs
-from request_manager import LoginRequestsSender
+from .request_manager import LoginRequestsSender
 
 
 
@@ -11,7 +11,7 @@ class MagisterSession():
         self.session = requests.Session()
         self.profile_auth_token = None #auth token for the redirect page
         self.app_auth_token = None #auth token for the main app
-        self.authcode = "1ca5d248"
+        self.authcode = None
         self.sessionid = None
         self.returnurl = None
         self.main_payload = None
@@ -64,12 +64,13 @@ class MagisterSession():
         self.returnurl = parse_qs(urlparse(response.url).query).get('returnUrl', [None])[0]
 
         javascript_redirect_url = self.request_sender.extract_redirect_url_from_html(response.text)
-        '''
-        #pseudocode
+        
+        
         response = self.session.get(f"https://accounts.magister.net/{javascript_redirect_url}")
-        self.authcode = self.request_sender.extract_authcode_from_javascript(response.text)
-        '''
-        self.authcode = "1ca5d248" #gets rotated TODO: figure out a way to extract it from the javascript
+        
+        self.authcode = self.request_sender.extract_dynamic_authcode(response.text)
+        
+        
 
         self.main_payload = {
         'authCode': self.authcode,
@@ -180,7 +181,7 @@ class MagisterSession():
 
 
 
-    def get_schedule(self, _from:str, to:str) -> list[dict]:
+    def get_schedule(self, _from:str, to:str,with_changes = True) -> list[dict]|None:
         '''
     Retrieves the user’s schedule within a specified date range.
     
@@ -235,16 +236,27 @@ class MagisterSession():
         if not self.app_auth_token:
             self._logMessage("You have not logged in yet")
             return
+        #Returns a schedule with no changes in it
         remove_links_and_id = lambda a: {k: v for k, v in a.items() if k not in ["Links", "Id"]}
         params = {
-        "status" : 1,
-        "tot": to,
-        "van": _from
-        }
+            "status" : 1,
+            "tot": to,
+            "van": _from
+            }
         headers = {"authorization":self.app_auth_token}
-        url = f"{self.api_url}/personen/{self.person_id}/afspraken"
-        respone = self.session.get(url=url,params=params,headers=headers)
+        if not with_changes:
+            
 
+            
+            url = f"{self.api_url}/personen/{self.person_id}/afspraken"
+            respone = self.session.get(url=url,params=params,headers=headers)
+
+
+        else:
+            del params["status"]
+            url = f"{self.api_url}/personen/{self.person_id}/roosterwijzigingen"
+            respone = self.session.get(url=url,params=params,headers=headers)
+            
         if respone.status_code == 200:
 
             response_json = respone.json()["Items"]
