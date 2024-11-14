@@ -181,7 +181,7 @@ class MagisterSession():
 
 
 
-    def get_schedule(self, _from:str, to:str,with_changes = True) -> list[dict]|None:
+    def get_schedule(self, _from:str, to:str,with_changes = False) -> list[dict]|None:
         '''
     Retrieves the user’s schedule within a specified date range.
     
@@ -191,7 +191,7 @@ class MagisterSession():
     Parameters:
     - _from (str): Start date of the schedule period in "YYYY-MM-DD" format.
     - to (str): End date of the schedule period in "YYYY-MM-DD" format.
-
+    - with_changes: Sends a different requests which retrieves recent changes. (It's not getting the changes on specific dates specifically so it's recomended to use with_changes = False instead)
     Returns:
     - list[dict]: A list of dictionaries representing schedule items, each with detailed fields. 
       The schedule items are sorted chronologically from earliest to latest.
