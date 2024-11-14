@@ -7,6 +7,10 @@ Please note: Using unauthorized APIs to access Magister is against Magister’s 
 By using this library, you assume all responsibility and accept any risks associated with breaching these terms. 
 For more details, please refer to Magister's Terms of Service. (https://magister.nl/over-ons/juridische-zaken/)
 
+## Installation
+```
+pip install git+https://github.com/H3LL0U/MagisterPy.git
+```
 ## Basic usage
 The following code snippet demonstrates how to create a session, log in, and retrieve your schedule and recent grades:
 ```
