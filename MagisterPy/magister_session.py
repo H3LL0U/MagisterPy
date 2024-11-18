@@ -1,7 +1,7 @@
 import requests
 from urllib.parse import urlparse, parse_qs
 from .request_manager import LoginRequestsSender
-
+from typing import Optional
 
 
 
@@ -27,7 +27,7 @@ class MagisterSession():
     
 
 
-    def input_school(self, school_name:str) ->None|requests.Response:
+    def input_school(self, school_name:str) ->Optional[requests.Response]:
         '''
         Sets up a session by inputting the school name. This is the **first step** in the login sequence 
         and must be called before `input_username()` and `input_password()`.
@@ -88,7 +88,7 @@ class MagisterSession():
             self._logMessage("Could not find the school")
             return 
         return response
-    def input_username(self,username:str) -> None|requests.Response:
+    def input_username(self,username:str) -> Optional[requests.Response]:
         '''
     Sets the username for the current session. This is the **second step** in the login sequence 
     and must be called after `input_school()` but before `input_password()`.
@@ -114,7 +114,7 @@ class MagisterSession():
             self._logMessage("Could not find the username")
             return None
         return response
-    def input_password(self,password:str) -> None|requests.Response:
+    def input_password(self,password:str) -> Optional[requests.Response]:
         '''
         Sets the password for the session and finalizes the login process. This is the **third and final step** 
         in the login sequence and must be called after `input_school()` and `input_username()`.
@@ -181,7 +181,7 @@ class MagisterSession():
 
 
 
-    def get_schedule(self, _from:str, to:str,with_changes = False) -> list[dict]|None:
+    def get_schedule(self, _from:str, to:str,with_changes = False) -> list[dict]:
         '''
     Retrieves the user’s schedule within a specified date range.
     

@@ -2,6 +2,7 @@ import requests
 from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup
 from .jsparser import *
+from typing import Optional
 class LoginRequestsSender():
     
 
@@ -27,7 +28,7 @@ class LoginRequestsSender():
             return None  
 
 
-    def get_accountid(self,request_session:requests.Session, app_auth_token,api_url):
+    def get_accountid(self,request_session:requests.Session, app_auth_token,api_url) -> str:
         url = f"{api_url}/sessions/current"
         
 
@@ -41,7 +42,7 @@ class LoginRequestsSender():
             
             return account_id
 
-    def get_personid(self,request_session:requests.Session, app_auth_token,api_url,account_id):
+    def get_personid(self,request_session:requests.Session, app_auth_token,api_url,account_id) -> str:
         
 
         url = f"{api_url}/accounts/{account_id}"
@@ -59,7 +60,7 @@ class LoginRequestsSender():
             personid = response_link[response_link.rfind("/")+1:]
             
             return personid
-    def extract_auth_token(self,url):
+    def extract_auth_token(self,url) -> str:
         # Parse the URL to get the fragment
         parsed_url = urlparse(url)
 
@@ -81,7 +82,7 @@ class LoginRequestsSender():
         return "Bearer " + self.extract_auth_token(url)
 
 
-    def get_app_auth_token(self,request_session:requests.Session,api_url):
+    def get_app_auth_token(self,request_session:requests.Session,api_url) -> str:
         url = "https://accounts.magister.net/connect/authorize"
         subdomain = self.get_subdomain(api_url)
         # Parameters as a dictionary
@@ -102,7 +103,7 @@ class LoginRequestsSender():
         return "Bearer " + self.extract_auth_token(url)
 
         
-    def get_api_url(self,request_session:requests.Session,profile_auth_token) -> str|None:
+    def get_api_url(self,request_session:requests.Session,profile_auth_token) -> str:
         headers = {"authorization": profile_auth_token}
 
         response =  request_session.get("https://magister.net/.well-known/host-meta.json",headers=headers)
@@ -135,7 +136,7 @@ class LoginRequestsSender():
         main_payload["username"] = username
         response = self.send_post_request(request_session,main_payload,"https://accounts.magister.net/challenges/username")
         return response
-    def send_post_request(self,request_session:requests.Session,payload,url,auth_token = None):
+    def send_post_request(self,request_session:requests.Session,payload,url,auth_token = None) ->  requests.Response:
 
         headers = {
             "accept": "application/json",
