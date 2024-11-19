@@ -5,7 +5,7 @@ setup(
     name="MagisterPy",  
     version="0.1.0",  
     description="A Python package for retrieving information from magister",
-    long_description=open("README.md").read(),  
+    long_description=open("README.MD").read(),  
     long_description_content_type="text/markdown", 
     author="H3LL0U",
     
