@@ -2,31 +2,42 @@ import requests
 from urllib.parse import urlparse, parse_qs
 from .request_manager import LoginRequestsSender
 from typing import Optional
-
-
+from .error_handler import error_handler
+from .magister_errors import *
 
 class MagisterSession():
-    def __init__(self):
+    '''
+    Creates a session with Magister
+
+    Parameters:
+            enable_logging (bool):  Used to display errors in the standard output
+
+            automatically_handle_errors (bool): Used to automatically handle errors. If any function fails it returns None instead of raising an error
+    '''
+
+    def __init__(self, enable_logging = False, automatically_handle_errors = True):
+
         self.request_sender = LoginRequestsSender()
         self.session = requests.Session()
         self.profile_auth_token = None #auth token for the redirect page
         self.app_auth_token = None #auth token for the main app
-        self.authcode = None
-        self.sessionid = None
-        self.returnurl = None
-        self.main_payload = None
-        self.person_id = None
-        self.account_id = None
-        self.api_url = None
+        self.authcode = None # gets randomly generated once every 3-7 days
+        self.sessionid = None # gets assigned when entering the login page
+        self.returnurl = None # used for some requests
+        self.main_payload = None #payload containing common parameters (authcode, returnurl, sessionid)
+        self.person_id = None # your account's person_id
+        self.account_id = None #your account id
+        self.api_url = None #url for accessing magister API
 
+        self.automatically_handle_errors = automatically_handle_errors
 
-        self.recieve_log = True
+        self.recieve_log = enable_logging
     def _logMessage(self,msg:str):
         if self.recieve_log:
             print(msg)
     
 
-
+    @error_handler
     def input_school(self, school_name:str) ->Optional[requests.Response]:
         '''
         Sets up a session by inputting the school name. This is the **first step** in the login sequence 
@@ -83,11 +94,12 @@ class MagisterSession():
         try:
             response = self.request_sender.set_school(request_session=self.session,school_name=school_name,main_payload=self.main_payload)
             if response.status_code !=200:
-                self._logMessage("Could not find the school")
+                raise IncorrectCredentials(f"Could not find school: {school_name}")
         except requests.exceptions.JSONDecodeError:
-            self._logMessage("Could not find the school")
-            return 
+            raise IncorrectCredentials(f"Could not find school: {school_name}")
+            
         return response
+    @error_handler
     def input_username(self,username:str) -> Optional[requests.Response]:
         '''
     Sets the username for the current session. This is the **second step** in the login sequence 
@@ -108,12 +120,15 @@ class MagisterSession():
         session.input_username("myusername")
     '''
 
-
+        if not self.main_payload:
+            raise UnableToInputCredentials()
         response = self.request_sender.set_username(request_session=self.session,username=username,main_payload=self.main_payload)
         if response.status_code != 200:
-            self._logMessage("Could not find the username")
-            return None
+            raise IncorrectCredentials()
+            
+        
         return response
+    @error_handler
     def input_password(self,password:str) -> Optional[requests.Response]:
         '''
         Sets the password for the session and finalizes the login process. This is the **third and final step** 
@@ -136,10 +151,12 @@ class MagisterSession():
         Example:
             session.input_password("mypassword")
         '''
+        if not self.main_payload:
+            raise UnableToInputCredentials()
         response = self.request_sender.set_password(request_session=self.session,password=password,main_payload=self.main_payload)
         if response.status_code !=200:
-            self._logMessage("Incorrect password or the password input is on cooldown")
-            return
+            raise IncorrectCredentials("Incorrect password or the password input is on cooldown")
+            
         #setup for variables
         self.profile_auth_token = self.request_sender.get_profile_auth_token(request_session=self.session)
         self.api_url = self.request_sender.get_api_url(request_session=self.session,profile_auth_token=self.profile_auth_token)
@@ -149,6 +166,7 @@ class MagisterSession():
 
         self._logMessage("you have successfully logged in!")
         return response
+    @error_handler
     def login(self,school_name:str,username:str,password:str) -> bool:
         '''
         logs the user into their account
@@ -180,7 +198,7 @@ class MagisterSession():
         
 
 
-
+    @error_handler
     def get_schedule(self, _from:str, to:str,with_changes = False) -> list[dict]:
         '''
     Retrieves the user’s schedule within a specified date range.
@@ -261,6 +279,7 @@ class MagisterSession():
 
             response_json = respone.json()["Items"]
             return list(map(remove_links_and_id,response_json))
+    @error_handler
     def get_grades(self, top:int = 25,skip:int = 0) -> list[dict]:
         '''
     Retrieves the most recent grades for the user.
@@ -318,4 +337,3 @@ class MagisterSession():
             response_json = respone.json()["items"]
             return list(map(remove_id,response_json))
         
-    
