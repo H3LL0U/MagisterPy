@@ -196,6 +196,7 @@ class MagisterSession():
         if not input_password_response:
             return False
         
+        return True
 
 
     @error_handler
