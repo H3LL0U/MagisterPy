@@ -87,7 +87,7 @@ class LoginRequestsSender():
         subdomain = self.get_subdomain(api_url)
         # Parameters as a dictionary
         params = {
-            "client_id": "M6-o2groningen.magister.net",
+            "client_id": f"M6-{subdomain}.magister.net",
             "redirect_uri": f"https://{subdomain}.magister.net/oidc/redirect_callback.html",
             "response_type": "id_token token",
             "scope": "openid profile opp.read opp.manage attendance.overview attendance.administration "
