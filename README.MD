@@ -11,6 +11,10 @@ For more details, please refer to Magister's Terms of Service. (https://magister
 ```
 pip install git+https://github.com/H3LL0U/MagisterPy.git
 ```
+
+## Contributing
+Feel free to create an issue if something doesn't work. It's only been tested on a singular school so far so it is to be expected. If you want to help add a feature it would be great as well! :D
+
 ## Basic usage
 The following code snippet demonstrates how to create a session, log in, and retrieve your schedule and recent grades:
 ```
