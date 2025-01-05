@@ -5,7 +5,7 @@ on:
 
 jobs:
   python-build-n-publish:
-    name: Build, publish Python distribution, and create GitHub release
+    name: Build and publish Python distribution and upload to GitHub release
     runs-on: ubuntu-latest
     steps:
       - name: Check out the code
@@ -28,13 +28,28 @@ jobs:
           # exit-zero treats all errors as warnings
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-      - name: Build distribution
-        run: python -m build
+      - name: Build distribution (source and wheel)
+        run: |
+          python -m build  # This will create both source distribution and wheel
 
       - name: Publish distribution to PyPI
         uses: pypa/gh-action-pypi-publish@master
         with:
           password: ${{ secrets.pypi_password }}
+          repository_url: https://upload.pypi.org/legacy/
+
+      - name: Get the version from setup.py
+        id: get_version
+        run: echo "::set-output name=version::$(python setup.py --version)"
+
+      - name: Upload distribution to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/*
+            MagisterPy/* 
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create a Git tag
         run: |
@@ -50,11 +65,7 @@ jobs:
           release_name: Release v${{ steps.get_version.outputs.version }}
           body: |
             ## What's New
-            - Add details about changes here.
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - id: get_version
-        run: echo "::set-output name=version::$(python setup.py --version)"
