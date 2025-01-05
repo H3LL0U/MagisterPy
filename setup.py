@@ -7,9 +7,9 @@ def parse_requirements(filename):
 
 setup(
     name="MagisterPy",  
-    version="0.1.1",  
+    version="0.1.2",  
     description="A Python package for retrieving information from magister",
-    long_description=open("README.MD").read(),  
+    long_description=open("./README.MD").read(),  
     long_description_content_type="text/markdown", 
     author="H3LL0U",
     url="https://github.com/H3LL0U/MagisterPy",  
@@ -22,5 +22,5 @@ setup(
     python_requires=">=3.9",
     include_package_data=True,
     zip_safe=False,
-    install_requires=parse_requirements('requirements.txt')  # Read dependencies
+    install_requires=parse_requirements('./requirements.txt')  # Read dependencies
 )
