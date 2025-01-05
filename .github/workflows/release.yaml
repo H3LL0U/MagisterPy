@@ -1,11 +1,11 @@
-name: Publish Python distributions to PyPI
+name: Publish Python distributions to PyPI and GitHub Release
 
 on:
   workflow_dispatch:
 
 jobs:
   python-build-n-publish:
-    name: Build and publish Python distribution
+    name: Build, publish Python distribution, and create GitHub release
     runs-on: ubuntu-latest
     steps:
       - name: Check out the code
@@ -32,6 +32,29 @@ jobs:
         run: python -m build
 
       - name: Publish distribution to PyPI
-        uses: pypa/gh-action-pypi-publish@v1
+        uses: pypa/gh-action-pypi-publish@main
         with:
           password: ${{ secrets.pypi_password }}
+
+      - name: Create a Git tag
+        run: |
+          git tag -a v${{ steps.get_version.outputs.version }} -m "Release v${{ steps.get_version.outputs.version }}"
+          git push origin v${{ steps.get_version.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create a GitHub release
+        uses: actions/create-release@v1
+        with:
+          tag_name: v${{ steps.get_version.outputs.version }}
+          release_name: Release v${{ steps.get_version.outputs.version }}
+          body: |
+            ## What's New
+            - Add details about changes here.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: get_version
+        run: echo "::set-output name=version::$(python setup.py --version)"
