@@ -34,7 +34,7 @@ class JsParser():
 
             
             for idx in index_list:
-                authcode+= random_char_list[idx]
+                authcode+= str(random_char_list[idx])
         if len(authcode) == 8:
             return authcode
         return None
