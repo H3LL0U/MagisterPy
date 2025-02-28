@@ -21,3 +21,7 @@ class ConnectionError(BaseMagisterError):
     def __init__(self, message="\nCould not connect to Magister. Please check your internet connection"):
         super().__init__(message)
         self.message = message
+class AuthcodeError(BaseMagisterError):
+    def __init__(self, message="\nCould not get the authcode from the javascript. This is likely due to magister updating their code structure, please update the package or create an issue if it the latest version"):
+        super().__init__(message)
+        self.message = message

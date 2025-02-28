@@ -15,14 +15,10 @@ class TestJsParser(unittest.TestCase):
         self.parser = JsParser()
 
     def test_valid_authcode_extraction(self):
-        with open(r"tests\test_javascripts\account-85bb24d85718eb247b7c.js") as file:
+        with open(r"tests\test_javascripts\account-56c22c13622e321fb1f1.js") as file:
             content = file.read()
-            self.assertEqual(self.parser.get_authcode_from_js(content),"1ca5d248")
+            self.assertEqual(self.parser.get_authcode_from_js(content),"6380e45e80d5bb")
 
-
-        with open(r"tests\test_javascripts\account-e6fb87fd4f567cbd37f5.js") as file:
-            content = file.read()
-            self.assertEqual(self.parser.get_authcode_from_js(content),"b7cf076f")
         
 
 if __name__ == "__main__":
