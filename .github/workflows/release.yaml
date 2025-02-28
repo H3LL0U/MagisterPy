@@ -42,19 +42,20 @@ jobs:
         id: get_version
         run: echo "::set-output name=version::$(python setup.py --version)"
 
+      # ✅ Move Git Tag Creation BEFORE the GitHub Release Step
+      - name: Create a Git tag
+        run: |
+          git tag -a v${{ steps.get_version.outputs.version }} -m "Release v${{ steps.get_version.outputs.version }}"
+          git push origin v${{ steps.get_version.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Upload distribution to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
             dist/*
             MagisterPy/* 
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create a Git tag
-        run: |
-          git tag -a v${{ steps.get_version.outputs.version }} -m "Release v${{ steps.get_version.outputs.version }}"
-          git push origin v${{ steps.get_version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
