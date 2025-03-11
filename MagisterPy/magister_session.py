@@ -5,6 +5,7 @@ from typing import Optional
 from .error_handler import error_handler
 from .magister_errors import *
 
+
 class MagisterSession():
     '''
     Creates a session with Magister
@@ -15,30 +16,30 @@ class MagisterSession():
             automatically_handle_errors (bool): Used to automatically handle errors. If any function fails it returns None instead of raising an error
     '''
 
-    def __init__(self, enable_logging = False, automatically_handle_errors = True):
+    def __init__(self, enable_logging=False, automatically_handle_errors=True):
 
         self.request_sender = LoginRequestsSender()
         self.session = requests.Session()
-        self.profile_auth_token = None #auth token for the redirect page
-        self.app_auth_token = None #auth token for the main app
-        self.authcode = None # gets randomly generated once every 3-7 days
-        self.sessionid = None # gets assigned when entering the login page
-        self.returnurl = None # used for some requests
-        self.main_payload = None #payload containing common parameters (authcode, returnurl, sessionid)
-        self.person_id = None # your account's person_id
-        self.account_id = None #your account id
-        self.api_url = None #url for accessing magister API
-        self.x_correlation_id = None #used in login requests
+        self.profile_auth_token = None  # auth token for the redirect page
+        self.app_auth_token = None  # auth token for the main app
+        self.authcode = None  # gets randomly generated once every 3-7 days
+        self.sessionid = None  # gets assigned when entering the login page
+        self.returnurl = None  # used for some requests
+        self.main_payload = None # payload containing common parameters (authcode, returnurl, sessionid)
+        self.person_id = None  # your account's person_id
+        self.account_id = None  # your account id
+        self.api_url = None  # url for accessing magister API
+        self.x_correlation_id = None  # used in login requests
         self.automatically_handle_errors = automatically_handle_errors
 
         self.recieve_log = enable_logging
-    def _logMessage(self,msg:str):
+
+    def _logMessage(self, msg: str):
         if self.recieve_log:
             print(msg)
-    
 
     @error_handler
-    def input_school(self, school_name:str) ->Optional[requests.Response]:
+    def input_school(self, school_name: str) -> Optional[requests.Response]:
         '''
         Sets up a session by inputting the school name. This is the **first step** in the login sequence 
         and must be called before `input_username()` and `input_password()`.
@@ -58,51 +59,57 @@ class MagisterSession():
             session.input_school("MySchoolName")
         '''
 
-
-        #Initializing the login session
+        # Initializing the login session
         url_login_page = "https://accounts.magister.net/"
 
-        response = self.session.get(url_login_page,allow_redirects=False)
+        response = self.session.get(url_login_page, allow_redirects=False)
 
         redirect_url_1 = r"https://accounts.magister.net/connect/authorize?client_id=iam-profile&redirect_uri=https%3A%2F%2Faccounts.magister.net%2Fprofile%2Foidc%2Fredirect_callback.html&response_type=id_token%20token&scope=openid%20profile%20email%20magister.iam.profile&state=57dcb9c3b667407791ff32a7af41e703&nonce=ec78d557c0e44751bf573db6719445cd"
-        response = self.session.get(redirect_url_1,allow_redirects=False)
+        response = self.session.get(redirect_url_1, allow_redirects=False)
 
-        
-        response = self.session.get(response.headers.get("location"), allow_redirects= False)
-        
-        response = self.session.get("https://accounts.magister.net/" + response.headers.get("location"), allow_redirects= False)
-        
-        self.sessionid = parse_qs(urlparse(response.url).query).get('sessionId', [None])[0]
-        self.returnurl = parse_qs(urlparse(response.url).query).get('returnUrl', [None])[0]
-        self.x_correlation_id = parse_qs(urlparse(self.returnurl).query).get('X-Correlation-ID', [None])[0]
+        response = self.session.get(response.headers.get(
+            "location"), allow_redirects=False)
 
-        javascript_redirect_url = self.request_sender.extract_redirect_url_from_html(response.text)
-        
-        
-        response = self.session.get(f"https://accounts.magister.net/{javascript_redirect_url}")
-        
-        self.authcode = self.request_sender.extract_dynamic_authcode(response.text)
-        
-        
+        response = self.session.get(
+            "https://accounts.magister.net/" + response.headers.get("location"), allow_redirects=False)
+
+        self.sessionid = parse_qs(urlparse(response.url).query).get(
+            'sessionId', [None])[0]
+        self.returnurl = parse_qs(urlparse(response.url).query).get(
+            'returnUrl', [None])[0]
+        self.x_correlation_id = parse_qs(urlparse(self.returnurl).query).get(
+            'X-Correlation-ID', [None])[0]
+
+        javascript_redirect_url = self.request_sender.extract_redirect_url_from_html(
+            response.text)
+
+        response = self.session.get(
+            f"https://accounts.magister.net/{javascript_redirect_url}")
+
+        self.authcode = self.request_sender.extract_dynamic_authcode(
+            response.text)
 
         self.main_payload = {
-        'authCode': self.authcode,
-        'returnUrl': self.returnurl, 
-        'sessionId': self.sessionid
+            'authCode': self.authcode,
+            'returnUrl': self.returnurl,
+            'sessionId': self.sessionid
         }
-        #Inputting the credentials
+        # Inputting the credentials
 
-        #school
+        # school
         try:
-            response = self.request_sender.set_school(request_session=self.session,school_name=school_name,main_payload=self.main_payload)
-            if response.status_code !=200:
-                raise IncorrectCredentials(f"Could not find school: {school_name}")
+            response = self.request_sender.set_school(
+                request_session=self.session, school_name=school_name, main_payload=self.main_payload)
+            if response.status_code != 200:
+                raise IncorrectCredentials(
+                    f"Could not find school: {school_name}")
         except requests.exceptions.JSONDecodeError:
             raise IncorrectCredentials(f"Could not find school: {school_name}")
-            
+
         return response
+
     @error_handler
-    def input_username(self,username:str) -> Optional[requests.Response]:
+    def input_username(self, username: str) -> Optional[requests.Response]:
         '''
     Sets the username for the current session. This is the **second step** in the login sequence 
     and must be called after `input_school()` but before `input_password()`.
@@ -124,14 +131,15 @@ class MagisterSession():
 
         if not self.main_payload:
             raise UnableToInputCredentials()
-        response = self.request_sender.set_username(request_session=self.session,username=username,main_payload=self.main_payload)
+        response = self.request_sender.set_username(
+            request_session=self.session, username=username, main_payload=self.main_payload)
         if response.status_code != 200:
             raise IncorrectCredentials()
-            
-        
+
         return response
+
     @error_handler
-    def input_password(self,password:str) -> Optional[requests.Response]:
+    def input_password(self, password: str) -> Optional[requests.Response]:
         '''
         Sets the password for the session and finalizes the login process. This is the **third and final step** 
         in the login sequence and must be called after `input_school()` and `input_username()`.
@@ -155,21 +163,29 @@ class MagisterSession():
         '''
         if not self.main_payload:
             raise UnableToInputCredentials()
-        response = self.request_sender.set_password(request_session=self.session,password=password,main_payload=self.main_payload)
-        if response.status_code !=200:
-            raise IncorrectCredentials("Incorrect password or the password input is on cooldown")
-            
-        #setup for variables
-        self.profile_auth_token = self.request_sender.get_profile_auth_token(request_session=self.session)
-        self.api_url = self.request_sender.get_api_url(request_session=self.session,profile_auth_token=self.profile_auth_token)
-        self.app_auth_token = self.request_sender.get_app_auth_token(request_session=self.session,api_url=self.api_url)
-        self.account_id = self.request_sender.get_accountid(request_session=self.session,app_auth_token=self.app_auth_token,api_url=self.api_url)
-        self.person_id = self.request_sender.get_personid(request_session=self.session,app_auth_token=self.app_auth_token,api_url=self.api_url,account_id=self.account_id)
+        response = self.request_sender.set_password(
+            request_session=self.session, password=password, main_payload=self.main_payload)
+        if response.status_code != 200:
+            raise IncorrectCredentials(
+                "Incorrect password or the password input is on cooldown")
+
+        # setup for variables
+        self.profile_auth_token = self.request_sender.get_profile_auth_token(
+            request_session=self.session)
+        self.api_url = self.request_sender.get_api_url(
+            request_session=self.session, profile_auth_token=self.profile_auth_token)
+        self.app_auth_token = self.request_sender.get_app_auth_token(
+            request_session=self.session, api_url=self.api_url)
+        self.account_id = self.request_sender.get_accountid(
+            request_session=self.session, app_auth_token=self.app_auth_token, api_url=self.api_url)
+        self.person_id = self.request_sender.get_personid(
+            request_session=self.session, app_auth_token=self.app_auth_token, api_url=self.api_url, account_id=self.account_id)
 
         self._logMessage("you have successfully logged in!")
         return response
+
     @error_handler
-    def login(self,school_name:str,username:str,password:str) -> bool:
+    def login(self, school_name: str, username: str, password: str) -> bool:
         '''
         logs the user into their account
 
@@ -182,30 +198,28 @@ class MagisterSession():
         username -> a string of a username (should be exact)
         password -> a string with the password of the user (should be exact)
         '''
-        #Inputting the school
+        # Inputting the school
         input_school_response = self.input_school(school_name=school_name)
-        
+
         if not input_school_response:
             return False
-            
 
-        #username
+        # username
         input_username_response = self.input_username(username=username)
         if not input_username_response:
             return False
-        #password
+        # password
         input_password_response = self.input_password(password=password)
         if not input_password_response:
             return False
-        
+
         return True
 
-
     @error_handler
-    def get_schedule(self, _from:str, to:str,with_changes = False) -> list[dict]:
+    def get_schedule(self, _from: str, to: str, with_changes=False) -> list[dict]:
         '''
     Retrieves the user’s schedule within a specified date range.
-    
+
     This method fetches all scheduled items between two dates, starting from `_from` to `to`.
     The session must be authenticated by calling `.login()` first.
 
@@ -257,36 +271,35 @@ class MagisterSession():
         if not self.app_auth_token:
             self._logMessage("You have not logged in yet")
             return
-        #Returns a schedule with no changes in it
-        remove_links_and_id = lambda a: {k: v for k, v in a.items() if k not in ["Links", "Id"]}
+        # Returns a schedule with no changes in it
+        def remove_links_and_id(a): return {
+            k: v for k, v in a.items() if k not in ["Links", "Id"]}
         params = {
-            "status" : 1,
+            "status": 1,
             "tot": to,
             "van": _from
-            }
-        headers = {"authorization":self.app_auth_token}
+        }
+        headers = {"authorization": self.app_auth_token}
         if not with_changes:
-            
 
-            
             url = f"{self.api_url}/personen/{self.person_id}/afspraken"
-            respone = self.session.get(url=url,params=params,headers=headers)
-
+            respone = self.session.get(url=url, params=params, headers=headers)
 
         else:
             del params["status"]
             url = f"{self.api_url}/personen/{self.person_id}/roosterwijzigingen"
-            respone = self.session.get(url=url,params=params,headers=headers)
-            
+            respone = self.session.get(url=url, params=params, headers=headers)
+
         if respone.status_code == 200:
 
             response_json = respone.json()["Items"]
-            return list(map(remove_links_and_id,response_json))
+            return list(map(remove_links_and_id, response_json))
+
     @error_handler
-    def get_grades(self, top:int = 25,skip:int = 0) -> list[dict]:
+    def get_grades(self, top: int = 25, skip: int = 0) -> list[dict]:
         '''
     Retrieves the most recent grades for the user.
-    
+
     This method fetches the latest grades for the authenticated user.
     The session must be authenticated by calling `.login()` first.
 
@@ -326,17 +339,18 @@ class MagisterSession():
         if not self.app_auth_token:
             self._logMessage("You have not logged in yet")
             return
-        remove_id = lambda a: {k: v for k, v in a.items() if k not in ["kolomId"]}
+
+        def remove_id(a): return {k: v for k,
+                                  v in a.items() if k not in ["kolomId"]}
         params = {
-        "top": top,
-        "skip": skip
+            "top": top,
+            "skip": skip
         }
-        headers = {"authorization":self.app_auth_token}
+        headers = {"authorization": self.app_auth_token}
         url = f"{self.api_url}/personen/{self.person_id}/cijfers/laatste"
-        respone = self.session.get(url=url,params=params,headers=headers)
+        respone = self.session.get(url=url, params=params, headers=headers)
 
         if respone.status_code == 200:
 
             response_json = respone.json()["items"]
-            return list(map(remove_id,response_json))
-        
+            return list(map(remove_id, response_json))

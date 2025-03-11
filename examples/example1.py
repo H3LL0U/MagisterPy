@@ -1,12 +1,14 @@
+from MagisterPy import MagisterSession
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
+sys.path.insert(0, os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '../')))
 
-from MagisterPy import MagisterSession
 
 # Create a new session and log in
 session = MagisterSession()
-session.login(school_name="School_name", username="your_username", password="your_password")
+session.login(school_name="School_name",
+              username="your_username", password="your_password")
 
 # Get schedule for a specific date range
 my_schedule = session.get_schedule("2024-11-03", "2024-11-10")

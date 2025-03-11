@@ -40,13 +40,14 @@ jobs:
 
       - name: Get the version from setup.py
         id: get_version
-        run: echo "::set-output name=version::$(python setup.py --version)"
+        run: echo "version=$(python setup.py --version)" >> $GITHUB_ENV
 
-      # ✅ Move Git Tag Creation BEFORE the GitHub Release Step
       - name: Create a Git tag
         run: |
-          git tag -a v${{ steps.get_version.outputs.version }} -m "Release v${{ steps.get_version.outputs.version }}"
-          git push origin v${{ steps.get_version.outputs.version }}
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git tag -a v${{ env.version }} -m "Release v${{ env.version }}"
+          git push origin v${{ env.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -62,8 +63,8 @@ jobs:
       - name: Create a GitHub release
         uses: actions/create-release@v1
         with:
-          tag_name: v${{ steps.get_version.outputs.version }}
-          release_name: Release v${{ steps.get_version.outputs.version }}
+          tag_name: v${{ env.version }}
+          release_name: Release v${{ env.version }}
           body: |
             ## What's New
           draft: false
