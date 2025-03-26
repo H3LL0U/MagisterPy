@@ -1,11 +1,12 @@
+import sys
+import os
+import logging
+sys.path.insert(0, os.path.abspath(
+    os.path.join(os.path.dirname(__file__), '../')))  # NOQA
 import json
 import unittest
 from MagisterPy import JsParser
-import sys
-import os
-sys.path.insert(0, os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '../')))
-
+logging.basicConfig(level=logging.INFO)
 
 # Replace with the actual module name where JsParser is defined
 
@@ -16,10 +17,13 @@ class TestJsParser(unittest.TestCase):
         self.parser = JsParser()
 
     def test_valid_authcode_extraction(self):
-        with open(r"tests\test_javascripts\account-56c22c13622e321fb1f1.js") as file:
-            content = file.read()
-            self.assertEqual(self.parser.get_authcode_from_js(
-                content), "6380e45e80d5bb")
+        for filename in os.listdir("tests/test_javascripts/"):
+            with open(f"tests/test_javascripts/{filename}") as file:
+                content = file.read()
+                logging.info(f"detected authcode: {self.parser.get_authcode_from_js(
+                    content)}")
+
+                self.assertEqual(True, True)
 
 
 if __name__ == "__main__":

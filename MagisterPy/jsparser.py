@@ -6,13 +6,33 @@ class JsParser():
     def __init__(self):
         pass
 
+    def rfind_nth_instance(self, string: str, substring, n, start_from=-1):
+
+        if start_from == -1:
+            start_from = None
+
+        index = string.rfind(substring, 0, start_from)
+
+        if index != -1 and n > 1:
+            return self.rfind_nth_instance(string, substring, n-1, index)
+        return index
+
     def get_authcode_from_js(self, js_content: str):
         try:
             line = 1131
-            column = 18203
+
             buffer = 200
             authcode = ""
-            js_content = js_content.split("\n")[line][column:column+buffer]
+            # It is the only (for now) a string that appears right after the authcode obfuscation at line 1132
+            authcode_identifier = "].map((function(t)"
+
+            end_column = js_content.find(authcode_identifier)+1
+            # Gets the last part of the authcode obfuscation
+            js_content = js_content[end_column-buffer:end_column]
+
+            start_column = self.rfind_nth_instance(js_content, "[", 2)
+            js_content = js_content[start_column:]
+
             start_list_index = None
             content_list = []  # stores the 2 lists containing info about the authcode
 

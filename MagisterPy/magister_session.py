@@ -25,7 +25,8 @@ class MagisterSession():
         self.authcode = None  # gets randomly generated once every 3-7 days
         self.sessionid = None  # gets assigned when entering the login page
         self.returnurl = None  # used for some requests
-        self.main_payload = None # payload containing common parameters (authcode, returnurl, sessionid)
+        # payload containing common parameters (authcode, returnurl, sessionid)
+        self.main_payload = None
         self.person_id = None  # your account's person_id
         self.account_id = None  # your account id
         self.api_url = None  # url for accessing magister API
