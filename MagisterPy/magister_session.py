@@ -4,6 +4,7 @@ from .request_manager import LoginRequestsSender
 from typing import Optional
 from .error_handler import error_handler
 from .magister_errors import *
+import time
 
 
 class MagisterSession():
@@ -11,12 +12,19 @@ class MagisterSession():
     Creates a session with Magister
 
     Parameters:
-            enable_logging (bool):  Used to display errors in the standard output
+            enable_logging (bool):  Used to display information in the standard output
 
             automatically_handle_errors (bool): Used to automatically handle errors. If any function fails it returns None instead of raising an error
+
+            enable_automatic_relogin (bool): If set to True the session will atempt to relogin when it detects that a method has raised an error caused by session expiring or poor internet connection
+
+            max_relogin_atempts (int): Specifies how many times the session will try to reconnect before throwing an error
+
+            delay_between_relogin_atempts (int) How many seconds should transpire between each atempt.
+
     '''
 
-    def __init__(self, enable_logging=False, automatically_handle_errors=True):
+    def __init__(self, enable_logging=False, automatically_handle_errors=True, max_relogin_atempts=5, enable_automatic_relogin=True, delay_between_relogin_atempts=2):
 
         self.request_sender = LoginRequestsSender()
         self.session = requests.Session()
@@ -32,6 +40,15 @@ class MagisterSession():
         self.api_url = None  # url for accessing magister API
         self.x_correlation_id = None  # used in login requests
         self.automatically_handle_errors = automatically_handle_errors
+
+        self.max_relogin_atempts = max_relogin_atempts
+        self.relogin_atempts = max_relogin_atempts
+        self.enable_automatic_relogin = enable_automatic_relogin
+        self.delay_between_relogin_atempts = delay_between_relogin_atempts
+
+        self.__school_name = None
+        self.__username = None
+        self.__password = None
 
         self.recieve_log = enable_logging
 
@@ -59,7 +76,8 @@ class MagisterSession():
         Example:
             session.input_school("MySchoolName")
         '''
-
+        # clearing the session
+        self.session = requests.Session()
         # Initializing the login session
         url_login_page = "https://accounts.magister.net/"
 
@@ -106,7 +124,7 @@ class MagisterSession():
                     f"Could not find school: {school_name}")
         except requests.exceptions.JSONDecodeError:
             raise IncorrectCredentials(f"Could not find school: {school_name}")
-
+        self.__school_name = school_name
         return response
 
     @error_handler
@@ -136,7 +154,7 @@ class MagisterSession():
             request_session=self.session, username=username, main_payload=self.main_payload)
         if response.status_code != 200:
             raise IncorrectCredentials()
-
+        self.__username = username
         return response
 
     @error_handler
@@ -183,6 +201,7 @@ class MagisterSession():
             request_session=self.session, app_auth_token=self.app_auth_token, api_url=self.api_url, account_id=self.account_id)
 
         self._logMessage("you have successfully logged in!")
+        self.__password = password
         return response
 
     @error_handler
@@ -215,6 +234,32 @@ class MagisterSession():
             return False
 
         return True
+
+    def relogin(self):
+        '''
+        Tries to relogin using the previously provided credentials (for example using login or input_{...} methods)
+        True -> if user logged in successfully
+
+        raises an error if all the relogin atempts were used up
+
+        Keep in mind that the errors raised by this method are not handled automatically
+        '''
+        self._logMessage("Atempting to relogin...")
+        if None in (self.__school_name, self.__password, self.__username):
+            raise NotLoggedInError()
+        while self.relogin_atempts > 0:
+            self._logMessage(f"Atempts left: {self.relogin_atempts}")
+            self.relogin_atempts -= 1
+            result = self.login(school_name=self.__school_name,
+                                username=self.__username,
+                                password=self.__password)
+            if result:
+                self.relogin_atempts = self.max_relogin_atempts
+                return True
+
+            time.sleep(self.delay_between_relogin_atempts)
+        raise ConnectionError(
+            "\nCould not reconect to your account after all of the atempts")
 
     @error_handler
     def get_schedule(self, _from: str, to: str, with_changes=False) -> list[dict]:
@@ -272,9 +317,7 @@ class MagisterSession():
         if not self.app_auth_token:
             self._logMessage("You have not logged in yet")
             return
-        # Returns a schedule with no changes in it
-        def remove_links_and_id(a): return {
-            k: v for k, v in a.items() if k not in ["Links", "Id"]}
+
         params = {
             "status": 1,
             "tot": to,
@@ -293,8 +336,11 @@ class MagisterSession():
 
         if respone.status_code == 200:
 
-            response_json = respone.json()["Items"]
-            return list(map(remove_links_and_id, response_json))
+            response_json = respone.json().get("Items")
+            if not response_json:
+                raise FetchError()
+            return response_json
+        raise FetchError()
 
     @error_handler
     def get_grades(self, top: int = 25, skip: int = 0) -> list[dict]:
@@ -341,8 +387,6 @@ class MagisterSession():
             self._logMessage("You have not logged in yet")
             return
 
-        def remove_id(a): return {k: v for k,
-                                  v in a.items() if k not in ["kolomId"]}
         params = {
             "top": top,
             "skip": skip
@@ -353,5 +397,9 @@ class MagisterSession():
 
         if respone.status_code == 200:
 
-            response_json = respone.json()["items"]
-            return list(map(remove_id, response_json))
+            response_json = respone.json().get("items")
+            if not response_json:
+                raise FetchError()
+            return response_json
+
+        raise FetchError()
