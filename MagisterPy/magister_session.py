@@ -337,7 +337,7 @@ class MagisterSession():
         if respone.status_code == 200:
 
             response_json = respone.json().get("Items")
-            if not response_json:
+            if response_json is None:
                 raise FetchError()
             return response_json
         raise FetchError()
@@ -398,7 +398,7 @@ class MagisterSession():
         if respone.status_code == 200:
 
             response_json = respone.json().get("items")
-            if not response_json:
+            if response_json is None:
                 raise FetchError()
             return response_json
 
