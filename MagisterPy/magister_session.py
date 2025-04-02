@@ -5,6 +5,7 @@ from typing import Optional
 from .error_handler import error_handler
 from .magister_errors import *
 import time
+from .response_items import *
 
 
 class MagisterSession():
@@ -262,7 +263,7 @@ class MagisterSession():
             "\nCould not reconect to your account after all of the atempts")
 
     @error_handler
-    def get_schedule(self, _from: str, to: str, with_changes=False) -> list[dict]:
+    def get_schedule(self, _from: str, to: str, with_changes=False) -> list[Lesson]:
         '''
     Retrieves the user’s schedule within a specified date range.
 
@@ -272,9 +273,10 @@ class MagisterSession():
     Parameters:
     - _from (str): Start date of the schedule period in "YYYY-MM-DD" format.
     - to (str): End date of the schedule period in "YYYY-MM-DD" format.
-    - with_changes: Sends a different requests which retrieves recent changes. (It's not getting the changes on specific dates specifically so it's recomended to use with_changes = False instead)
+    - with_changes: Retrieves a schedule including the cancelled lessons. The cancelled lessons will be marked as cancelled. 
+      You can check if the lesson is cancelled by running is_cancelled method on the returned Lesson object inside of the list
     Returns:
-    - list[dict]: A list of dictionaries representing schedule items, each with detailed fields. 
+    - list[Lesson]: A list of dictionaries representing schedule items, each with detailed fields. 
       The schedule items are sorted chronologically from earliest to latest.
 
     Structure of Each Schedule Item:
@@ -314,6 +316,7 @@ class MagisterSession():
     session.get_schedule(_from="2024-11-10", to="2024-11-11")
     ```
     '''
+        response_original_schedule = None
         if not self.app_auth_token:
             self._logMessage("You have not logged in yet")
             return
@@ -324,26 +327,49 @@ class MagisterSession():
             "van": _from
         }
         headers = {"authorization": self.app_auth_token}
-        if not with_changes:
 
-            url = f"{self.api_url}/personen/{self.person_id}/afspraken"
-            respone = self.session.get(url=url, params=params, headers=headers)
+        # gets the schedule without the cancelled lessons
+        url = f"{self.api_url}/personen/{self.person_id}/afspraken"
+        response = self.session.get(url=url, params=params, headers=headers)
 
-        else:
+        # gets the schedule with cancelled lessons
+        if with_changes:
             del params["status"]
-            url = f"{self.api_url}/personen/{self.person_id}/roosterwijzigingen"
-            respone = self.session.get(url=url, params=params, headers=headers)
+            url = f"{self.api_url}/personen/{self.person_id}/afspraken"
+            response_original_schedule = self.session.get(
+                url=url, params=params, headers=headers)
+            if response_original_schedule.status_code == 200:
+                response_original_schedule = response_original_schedule.json().get("Items")
+            else:
+                response_original_schedule = None
+        if response.status_code == 200:
 
-        if respone.status_code == 200:
+            response_json = response.json().get("Items")
 
-            response_json = respone.json().get("Items")
             if response_json is None:
                 raise FetchError()
-            return response_json
+            if not response_original_schedule is None and with_changes:
+                # check for cancelled lessons by finding id's that don't exist in both responses and setting cancelled parameter to true if they are
+                response_json_ids = {Lesson(lesson).get_id()
+                                     for lesson in response_json}
+
+                response_original_schedule = [
+                    Lesson(lesson) for lesson in response_original_schedule]
+                response_original_schedule_ids = {
+                    lesson.get_id() for lesson in response_original_schedule}
+
+                cancelled_ids = response_original_schedule_ids - response_json_ids
+
+                for lesson in response_original_schedule:
+                    if lesson.get_id() in cancelled_ids:
+                        lesson.cancelled = True
+                return response_original_schedule
+            # return schedule without cancelled items
+            return [Lesson(lesson) for lesson in response_json]
         raise FetchError()
 
     @error_handler
-    def get_grades(self, top: int = 25, skip: int = 0) -> list[dict]:
+    def get_grades(self, top: int = 25, skip: int = 0) -> list[Grade]:
         '''
     Retrieves the most recent grades for the user.
 
@@ -393,13 +419,13 @@ class MagisterSession():
         }
         headers = {"authorization": self.app_auth_token}
         url = f"{self.api_url}/personen/{self.person_id}/cijfers/laatste"
-        respone = self.session.get(url=url, params=params, headers=headers)
+        response = self.session.get(url=url, params=params, headers=headers)
 
-        if respone.status_code == 200:
+        if response.status_code == 200:
 
-            response_json = respone.json().get("items")
+            response_json = response.json().get("items")
             if response_json is None:
                 raise FetchError()
-            return response_json
+            return [Grade(grade) for grade in response_json]
 
         raise FetchError()

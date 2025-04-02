@@ -30,7 +30,7 @@ print("Schedule in json:", my_schedule)
 print("Most Recent Grade:", my_most_recent_grade)
 
 
-#Simulate the session expiring
+# Simulate the session expiring
 #
 session.app_auth_token = "some_random_string"
 

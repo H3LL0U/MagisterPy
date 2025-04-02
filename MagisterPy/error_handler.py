@@ -14,13 +14,13 @@ def invoke_relogin(_self):
         return _self.relogin()
 
 
-def error_handler(func, __recursive_call = None):
-
+def error_handler(func, __recursive_call=None):
     '''
     A decorator used to handle errors that can occurre when when executing the methods
     '''
     if __recursive_call is None:
         __recursive_call = False
+
     def wrapper(*args, **kwargs):
         _self = args[0]
         errors_that_invoke_relogin = [FetchError,
@@ -32,10 +32,10 @@ def error_handler(func, __recursive_call = None):
             raise KeyboardInterrupt
         except (BaseMagisterError, requests.exceptions.ConnectionError) as e:
             # Detects if there is an irregular error in the method and makes sure that the method doesn't rerun recursively
-            if any(isinstance(e, error_type) for error_type in errors_that_invoke_relogin) and not __recursive_call:
-                if invoke_relogin(_self):
-                    # Reruns the the method
-                    return error_handler(func, __recursive_call = True)(*args, **kwargs)
+            if any(isinstance(e, error_type) for error_type in errors_that_invoke_relogin) and not __recursive_call and invoke_relogin(_self):
+
+                # Reruns the the method
+                return error_handler(func, __recursive_call=True)(*args, **kwargs)
 
             elif not _self.automatically_handle_errors:
                 raise e
