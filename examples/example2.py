@@ -1,8 +1,8 @@
-from MagisterPy import MagisterSession
-import sys
-import os
+from MagisterPy import MagisterSession  # NOQA
+import sys  # NOQA
+import os  # NOQA
 sys.path.insert(0, os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '../')))
+    os.path.join(os.path.dirname(__file__), '../')))  # NOQA
 
 
 school_name = "your_school"
@@ -31,3 +31,5 @@ my_most_recent_grade = session.get_grades(top=1)[0]["waarde"]
 
 print("Schedule in json:", my_schedule)
 print("Most Recent Grade:", my_most_recent_grade)
+
+session.clear()

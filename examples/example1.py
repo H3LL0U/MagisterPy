@@ -18,3 +18,6 @@ my_most_recent_grade = session.get_grades(top=1)[0]["waarde"]
 
 print("Schedule in json:", my_schedule)
 print("Most Recent Grade:", my_most_recent_grade)
+
+# clear the session
+session.clear()

@@ -35,7 +35,7 @@ class JsonResponseItem():
         return len(self.json)
 
     def __repr__(self):
-        return f"JsonResponseItem({repr(self.json)})"
+        return f"{repr(self.json)}"
 
 
 class Lesson(JsonResponseItem):
@@ -163,7 +163,8 @@ class Lesson(JsonResponseItem):
             return None
 
         return [subject["Naam"] for subject in subject_list if "Naam" in subject]
-    def get_description(self) -> Union[None,str]:
+
+    def get_description(self) -> Union[None, str]:
         '''
         Retrieves the description of the lesson.
 
@@ -172,6 +173,7 @@ class Lesson(JsonResponseItem):
             None: If no valid description exist.
         '''
         return self.json.get("Omschrijving")
+
 
 class Grade(JsonResponseItem):
     '''

@@ -20,7 +20,7 @@ class TestJsParser(unittest.TestCase):
         for filename in os.listdir("tests/test_javascripts/"):
             with open(f"tests/test_javascripts/{filename}") as file:
                 content = file.read()
-                logging.info(f"detected authcode: {self.parser.get_authcode_from_js(content)}") # NOQA
+                logging.info(f"detected authcode: {self.parser.get_authcode_from_js(content)}")  # NOQA
 
                 self.assertEqual(True, True)
 

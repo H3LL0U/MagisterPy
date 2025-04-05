@@ -27,9 +27,28 @@ class MagisterSession():
 
     def __init__(self, enable_logging=False, automatically_handle_errors=True, max_relogin_atempts=5, enable_automatic_relogin=True, delay_between_relogin_atempts=2):
 
+        self.__set_vars()
+
+        self.automatically_handle_errors = automatically_handle_errors
+
+        self.max_relogin_atempts = max_relogin_atempts
+        self.relogin_atempts = max_relogin_atempts
+        self.enable_automatic_relogin = enable_automatic_relogin
+        self.delay_between_relogin_atempts = delay_between_relogin_atempts
+
+        self.recieve_log = enable_logging
+
+    def __set_vars(self, reset_credentials=None):
+        '''
+        Sets/resets all of the variables back to their original state.
+        '''
+        if reset_credentials is None:
+            reset_credentials = True
+
         self.request_sender = LoginRequestsSender()
         self.session = requests.Session()
-        self.profile_auth_token = None  # auth token for the redirect page
+        # auth token for the redirect page (also called access_token)
+        self.profile_auth_token = None
         self.app_auth_token = None  # auth token for the main app
         self.authcode = None  # gets randomly generated once every 3-7 days
         self.sessionid = None  # gets assigned when entering the login page
@@ -40,18 +59,47 @@ class MagisterSession():
         self.account_id = None  # your account id
         self.api_url = None  # url for accessing magister API
         self.x_correlation_id = None  # used in login requests
-        self.automatically_handle_errors = automatically_handle_errors
+        if reset_credentials:
+            self.__school_name = None
+            self.__username = None
+            self.__password = None
 
-        self.max_relogin_atempts = max_relogin_atempts
-        self.relogin_atempts = max_relogin_atempts
-        self.enable_automatic_relogin = enable_automatic_relogin
-        self.delay_between_relogin_atempts = delay_between_relogin_atempts
+    def clear(self, reset_credentials: bool = True) -> None:
+        '''
+        Closes the current session and resets all of the variables. 
 
-        self.__school_name = None
-        self.__username = None
-        self.__password = None
 
-        self.recieve_log = enable_logging
+        params:
+        reset_credentials (bool) -> if True also resets the credentials stored inside of the class. That means that the future use of relogin() will cause an error
+        -> If False doesn't reset credentials. That means you can use relogin() to log back into Magister.
+
+        '''
+
+        self.session.close()
+        self.__set_vars(reset_credentials=reset_credentials)
+        self._logMessage("Session has successfully been cleared")
+
+    def __enter__(self):
+        '''
+        clears all the variables and closes the session when entering the with ... as ...: block
+        '''
+        self.clear()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        '''
+        clears all the variables and closes the session when exiting the with ... as ...: block
+        '''
+        self.clear()
+
+    def __del__(self):
+        '''
+        closes the sesison when it goes out of scope
+        '''
+        try:
+            self.session.close()
+        except (AttributeError, NameError) as e:
+            self._logMessage(f"Error closing the session{e}")
 
     def _logMessage(self, msg: str):
         if self.recieve_log:

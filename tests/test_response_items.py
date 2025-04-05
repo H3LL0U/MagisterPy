@@ -47,8 +47,10 @@ class TestLesson(unittest.TestCase):
 
     def test_get_id(self):
         self.assertEqual(self.lesson.get_id(), 100)
+
     def test_get_description(self):
-        self.assertEqual(self.lesson.get_description(),"Math")
+        self.assertEqual(self.lesson.get_description(), "Math")
+
 
 class TestGrade(unittest.TestCase):
     def setUp(self):
