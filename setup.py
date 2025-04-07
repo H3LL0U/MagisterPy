@@ -8,7 +8,7 @@ def parse_requirements(filename):
 
 setup(
     name="MagisterPy",
-    version="0.1.41",
+    version="0.1.50",
     description="A Python package for retrieving information from magister",
     long_description=open("./README.MD").read(),
     long_description_content_type="text/markdown",

@@ -1,6 +1,6 @@
 import requests
 from urllib.parse import urlparse, parse_qs
-from .request_manager import LoginRequestsSender
+from .request_manager import LoginRequestsSender , AuthorizedRequestSender
 from typing import Optional
 from .error_handler import error_handler
 from .magister_errors import *
@@ -104,7 +104,12 @@ class MagisterSession():
     def _logMessage(self, msg: str):
         if self.recieve_log:
             print(msg)
-
+    def is_logged_in(self) -> bool:
+        '''
+        returns True -> user is logged in
+                False -> user still needs to log in
+        '''
+        return self.app_auth_token and self.__school_name and self.__password and self.__username
     @error_handler
     def input_school(self, school_name: str) -> Optional[requests.Response]:
         '''
@@ -476,4 +481,110 @@ class MagisterSession():
                 raise FetchError()
             return [Grade(grade) for grade in response_json]
 
+        raise FetchError()
+    @error_handler
+    def get_person_profile(self) -> PersonProfile:
+        '''
+        returns the current account's person profile.
+        json structure:
+        ```{
+            "id": int,                               // Unique internal identifier for the person
+            "externeId": str,                        // External identifier string (e.g., UUID format)
+            "accountExterneId": str,                 // External account ID (associated with the account)
+            "voorletters": str,                      // Initials of the person
+            "roepnaam": str,                         // First or given name
+            "tussenvoegsel": str | null,             // Middle name or name prefix (may be null)
+            "achternaam": str,                       // Last or family name
+            "stamnummer": int,                       // Unique student or user number
+            "rollenVanGebruiker": list[str],         // List of roles assigned to the user
+            "links": {
+                "self": { "href": str },             
+                "personalia": { "href": str },
+                "foto": { "href": str },
+                "mentoren": { "href": str },
+                "afspraken": { "href": str },
+                "notities": { "href": str },
+                "terugkommaatregelen": { "href": str },
+                "taken": { "href": str },
+                "verantwoordingen": { "href": str },
+                "aanmeldingen": { "href": str },
+                "kenmerken": { "href": str },
+                "vakken": { "href": str },
+                "vooropleiding": { "href": str },
+                "overstapdossiers": { "href": str },
+                "verantwoordingPerioden": { "href": str },
+                "lvs": { "href": str },
+                "portfolio": { "href": str },
+                "opleiding": { "href": str },
+                "officieleGegevens": { "href": str },
+                "privileges": { "href": str }
+            }
+        }```
+        ...
+        '''
+        #getting one of the role links out of the list. TODO: has only been tested for the student if you are a teacher the behaviour might be different
+        if not self.is_logged_in():
+            raise NotLoggedInError()
+        account_profile = self.get_account_profile()
+        all_links = account_profile.get_all_links()
+        api_endpoint = None
+        if "self" in all_links:
+            del all_links["self"]
+        for role in all_links:
+            api_endpoint = all_links.get(role,{}).get("href")
+            if not api_endpoint is None and len(api_endpoint)>4:
+                break
+
+        if not api_endpoint is None:
+            response = AuthorizedRequestSender.send_authorized_request(magister_session=self,
+                                                                        url=f"{self.api_url}/{api_endpoint[4:]}",method="GET")
+
+            if response.status_code == 200:
+                return PersonProfile(response.json())
+        raise FetchError()
+
+    
+    @error_handler
+    def get_account_profile(self) -> AccountProfile:
+        '''
+        returns the account profile of the user
+        json structure:
+        ```{
+            "id": int,                               // Unique internal identifier for the account
+            "naam": str,                             // Username or display name
+            "emailadres": str,                       // Email address linked to the account
+            "mobielTelefoonnummer": str,            // Mobile phone number
+            "softtokenStatus": str,                 // Status of soft token (e.g., linked/unlinked)
+            "isEmailadresGeverifieerd": bool,       // Indicates whether the email address is verified
+            "moetEmailadresVerifieren": bool,       // Indicates whether email verification is required
+            "uuId": str,                             // Unique account identifier (UUID format)
+            "links": {
+                "self": { "href": str },            // API link to this account resource
+                "leerling": { "href": str }         // API link to the associated person/student profile
+            }
+        ```}
+        '''
+        if not self.is_logged_in():
+            raise NotLoggedInError()
+        response = AuthorizedRequestSender.send_authorized_request(magister_session=self,
+                                                                   url=f"{self.api_url}/accounts/{self.account_id}",method="GET")
+        
+        if response.status_code == 200:
+            return AccountProfile(response.json())
+        raise FetchError()
+    @error_handler
+    def get_foto(self) -> bytes:
+        '''
+        returns the logged in user's photo as bytes
+        '''
+        if not self.is_logged_in():
+            raise NotLoggedInError()
+        photo_api_endpoint = self.get_person_profile().get_photo_link()
+
+        if photo_api_endpoint is None or len(photo_api_endpoint) <=4:
+            raise FetchError()
+        response = AuthorizedRequestSender.send_authorized_request(magister_session=self,
+                                                                    url=f"{self.api_url}/{photo_api_endpoint[4:]}",method="GET")
+        if response.status_code ==200:
+            return response.content
         raise FetchError()

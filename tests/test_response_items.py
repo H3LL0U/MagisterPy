@@ -3,7 +3,7 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(
     os.path.join(os.path.dirname(__file__), '../')))  # NOQA
-from MagisterPy import MagisterSession, Lesson, Grade
+from MagisterPy import *
 
 
 class TestLesson(unittest.TestCase):
@@ -82,6 +82,87 @@ class TestGrade(unittest.TestCase):
 
     def test_get_id(self):
         self.assertEqual(self.grade.get_id(), 1)
+
+
+
+class TestPersonProfile(unittest.TestCase):
+    def setUp(self):
+        self.valid_data = {
+            "id": 999001,
+            "externeId": "xyz789",
+            "accountExterneId": "acc987654321",
+            "voorletters": "J.D.",
+            "roepnaam": "Jane",
+            "tussenvoegsel": None,
+            "achternaam": "Doe",
+            "stamnummer": 654321,
+            "rollenVanGebruiker": ["Leerling"],
+            "links": {
+                "self": {"href": "/api/leerlingen/999001"},
+                "foto": {"href": "/api/leerlingen/999001/foto"}
+            }
+        }
+        self.profile = PersonProfile(self.valid_data)
+
+    def test_getters(self):
+        self.assertEqual(self.profile.get_id(), 999001)
+        self.assertEqual(self.profile.get_externe_id(), "xyz789")
+        self.assertEqual(self.profile.get_account_external_id(), "acc987654321")
+        self.assertEqual(self.profile.get_initials(), "J.D.")
+        self.assertEqual(self.profile.get_first_name(), "Jane")
+        self.assertIsNone(self.profile.get_infix())
+        self.assertEqual(self.profile.get_last_name(), "Doe")
+        self.assertEqual(self.profile.get_student_number(), 654321)
+        self.assertEqual(self.profile.get_roles(), ["Leerling"])
+        self.assertEqual(self.profile.get_all_links()["foto"]["href"], "/api/leerlingen/999001/foto")
+        self.assertEqual(self.profile.get_specific_link("foto"), "/api/leerlingen/999001/foto")
+        self.assertEqual(self.profile.get_photo_link(), "/api/leerlingen/999001/foto")
+
+    def test_is_valid(self):
+        self.assertTrue(self.profile.is_valid())
+
+        # Test missing key
+        invalid_data = self.valid_data.copy()
+        del invalid_data["voorletters"]
+        self.assertFalse(PersonProfile(invalid_data).is_valid())
+
+
+class TestAccountProfile(unittest.TestCase):
+    def setUp(self):
+        self.valid_data = {
+            "id": 888222,
+            "naam": "user12345",
+            "emailadres": "user12345@schooldomain.test",
+            "mobielTelefoonnummer": "0611223344",
+            "softtokenStatus": "nietGekoppeld",
+            "isEmailadresGeverifieerd": False,
+            "moetEmailadresVerifieren": True,
+            "uuId": "abcd1234-5678-9012-efgh-3456ijkl7890",
+            "links": {
+                "self": {"href": "/api/accounts/888222"},
+                "leerling": {"href": "/api/leerlingen/999001"}
+            }
+        }
+        self.profile = AccountProfile(self.valid_data)
+
+    def test_getters(self):
+        self.assertEqual(self.profile.get_id(), 888222)
+        self.assertEqual(self.profile.get_username(), "user12345")
+        self.assertEqual(self.profile.get_email(), "user12345@schooldomain.test")
+        self.assertEqual(self.profile.get_mobile_number(), "0611223344")
+        self.assertEqual(self.profile.get_softtoken_status(), "nietGekoppeld")
+        self.assertFalse(self.profile.is_email_verified())
+        self.assertTrue(self.profile.must_verify_email())
+        self.assertEqual(self.profile.get_uuid(), "abcd1234-5678-9012-efgh-3456ijkl7890")
+        self.assertEqual(self.profile.get_specific_link("leerling"), "/api/leerlingen/999001")
+
+    def test_is_valid(self):
+        self.assertTrue(self.profile.is_valid())
+
+        # Missing field test
+        invalid_data = self.valid_data.copy()
+        del invalid_data["emailadres"]
+        self.assertFalse(AccountProfile(invalid_data).is_valid())
 
 
 if __name__ == "__main__":

@@ -276,3 +276,103 @@ class Grade(JsonResponseItem):
             None: If the weighting factor is missing.
         '''
         return self.json.get("weegfactor")
+    
+class PersonProfile(JsonResponseItem):
+    def __init__(self, json: dict):
+        super().__init__(json=json)
+
+    def get_id(self) ->int:
+        return self.json.get("id")
+
+    def get_externe_id(self)->str:
+        return self.json.get("externeId")
+
+    def get_account_external_id(self)->str:
+        return self.json.get("accountExterneId")
+
+    def get_initials(self)->str:
+        return self.json.get("voorletters")
+
+    def get_first_name(self)->str:
+        return self.json.get("roepnaam")
+
+    def get_infix(self) ->str:
+        return self.json.get("tussenvoegsel")
+
+    def get_last_name(self) ->str:
+        return self.json.get("achternaam")
+
+    def get_student_number(self) -> int:
+        return self.json.get("stamnummer")
+
+    def get_roles(self) -> list[str]:
+        return self.json.get("rollenVanGebruiker")
+
+    def get_all_links(self) -> dict[dict[str]]:
+        return self.json.get("links", {})
+    def get_specific_link(self, name:str) ->str:
+        return self.json.get("links", {}).get(name, {}).get("href")
+    def get_photo_link(self) ->str:
+        return self.get_specific_link("foto")
+    
+    def is_valid(self):
+        required_keys = {
+            "id", "externeId", "accountExterneId", "voorletters",
+            "roepnaam", "tussenvoegsel", "achternaam", "stamnummer",
+            "rollenVanGebruiker", "links"
+        }
+
+        if not isinstance(self.json, dict):
+            return False
+
+        return not bool(required_keys - self.json.keys())
+
+class AccountProfile(JsonResponseItem):
+    def __init__(self, json):
+        super().__init__(json=json)
+
+
+    def is_valid(self) -> bool:
+        required_keys = {
+            "id", "naam", "emailadres", "mobielTelefoonnummer",
+            "softtokenStatus", "isEmailadresGeverifieerd",
+            "moetEmailadresVerifieren", "uuId", "links"
+        }
+
+        if not isinstance(self.json, dict):
+            return False
+
+        return not bool(required_keys - self.json.keys())
+    def get_id(self) -> int:
+        return self.json.get("id")
+
+    def get_username(self) -> str:
+        return self.json.get("naam")
+
+    def get_email(self) ->str:
+        return self.json.get("emailadres")
+
+    def get_mobile_number(self) ->str:
+        return self.json.get("mobielTelefoonnummer")
+
+    def get_softtoken_status(self) ->str:
+        return self.json.get("softtokenStatus")
+
+    def is_email_verified(self) -> bool:
+        return self.json.get("isEmailadresGeverifieerd")
+
+    def must_verify_email(self) ->bool:
+        return self.json.get("moetEmailadresVerifieren")
+
+    def get_uuid(self) ->str:
+        return self.json.get("uuId")
+    
+    def get_all_links(self) -> dict[dict[str]]:
+        return self.json.get("links")
+
+    def get_specific_link(self, name:str) ->str:
+        return self.json.get("links", {}).get(name, {}).get("href")
+        
+
+        
+
