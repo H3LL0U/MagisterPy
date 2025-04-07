@@ -573,7 +573,7 @@ class MagisterSession():
             return AccountProfile(response.json())
         raise FetchError()
     @error_handler
-    def get_foto(self) -> bytes:
+    def get_photo(self) -> bytes:
         '''
         returns the logged in user's photo as bytes
         '''
