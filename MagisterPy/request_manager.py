@@ -48,11 +48,39 @@ class LoginRequestsSender():
 
         response = request_session.get(url=url, headers=headers)
 
-        if response.status_code == 200:
-            response_link = response.json()["links"]["leerling"]["href"]
-            personid = response_link[response_link.rfind("/")+1:]
+        if response.status_code != 200:
+            return
 
-            return personid
+        links = response.json()["links"]
+
+        if "leerling" in links:
+            response_link = links["leerling"]["href"]
+            return response_link[response_link.rfind("/")+1:]
+
+        if "ouder" in links:
+            parent_href = links["ouder"]["href"]
+            parent_id = parent_href[parent_href.rfind("/")+1:]
+            return self._get_first_child_personid(
+                request_session, app_auth_token, api_url, parent_id)
+
+        raise KeyError(
+            "Account profile has neither 'leerling' nor 'ouder' link; "
+            "account type is not supported.")
+
+    def _get_first_child_personid(self, request_session: requests.Session, app_auth_token, api_url, parent_id) -> str:
+        # Returns the first child for parent accounts. Multi-child parents are not yet exposed in the API.
+        url = f"{api_url}/personen/{parent_id}/kinderen"
+        headers = {"authorization": app_auth_token}
+
+        response = request_session.get(url=url, headers=headers)
+        if response.status_code != 200:
+            return
+
+        items = response.json().get("Items") or []
+        if not items:
+            return
+
+        return str(items[0]["Id"])
 
     def extract_auth_token(self, url) -> str:
         # Parse the URL to get the fragment
