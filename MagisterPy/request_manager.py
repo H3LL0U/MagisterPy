@@ -48,11 +48,39 @@ class LoginRequestsSender():
 
         response = request_session.get(url=url, headers=headers)
 
-        if response.status_code == 200:
-            response_link = response.json()["links"]["leerling"]["href"]
-            personid = response_link[response_link.rfind("/")+1:]
+        if response.status_code != 200:
+            return
 
-            return personid
+        links = response.json()["links"]
+
+        if "leerling" in links:
+            response_link = links["leerling"]["href"]
+            return response_link[response_link.rfind("/")+1:]
+
+        if "ouder" in links:
+            parent_href = links["ouder"]["href"]
+            parent_id = parent_href[parent_href.rfind("/")+1:]
+            return self._get_first_child_personid(
+                request_session, app_auth_token, api_url, parent_id)
+
+        raise KeyError(
+            "Account profile has neither 'leerling' nor 'ouder' link; "
+            "account type is not supported.")
+
+    def _get_first_child_personid(self, request_session: requests.Session, app_auth_token, api_url, parent_id) -> str:
+        # Returns the first child for parent accounts. Multi-child parents are not yet exposed in the API.
+        url = f"{api_url}/personen/{parent_id}/kinderen"
+        headers = {"authorization": app_auth_token}
+
+        response = request_session.get(url=url, headers=headers)
+        if response.status_code != 200:
+            return
+
+        items = response.json().get("Items") or []
+        if not items:
+            return
+
+        return str(items[0]["Id"])
 
     def extract_auth_token(self, url) -> str:
         # Parse the URL to get the fragment
@@ -165,27 +193,16 @@ class LoginRequestsSender():
     def extract_dynamic_authcode(self, js_content):
         return JsParser().get_authcode_from_js(js_content=js_content)
 class AuthorizedRequestSender():
-    def __init__(self):
-        ...
-    def send_authorized_request(magister_session, url:str,url_replacements:dict = None,method = "POST",params = None,extra_headers = None) -> requests.Response:
+    @staticmethod
+    def send_authorized_request(magister_session, url: str, url_replacements: dict = None,
+                                method="POST", params=None, extra_headers=None) -> requests.Response:
+        url_replacements = url_replacements or {}
+        params = params or {}
+        extra_headers = extra_headers or {}
 
-        if url_replacements is None:
-            url_replacements = dict()
+        for old, new in url_replacements.items():
+            url = url.replace(old, new)
 
-        if params is None:
-            params = {}
-
-        if extra_headers is None:
-            extra_headers = {}
-        for replacement in url_replacements:
-            url = url.replace(replacement,url_replacements.get(replacement))
-        
         headers = {"authorization": magister_session.app_auth_token} | extra_headers
-        
-        response = magister_session.session.get(url=url, params=params, headers=headers)
-        magister_session.session.request(method=method,url=url)
-        
-
-            
-        return response
-    
+        return magister_session.session.request(
+            method=method, url=url, params=params, headers=headers)
