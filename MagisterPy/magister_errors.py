@@ -41,3 +41,8 @@ class FetchError(BaseMagisterError):
     def __init__(self, message="\nThere was an error fetching the data. The session has probably expired. Run relogin on the session or enable automatic_relogin through the session parameters."):
         super().__init__(message)
         self.message = message
+class PasswordKeyError(BaseMagisterError):
+
+    def __init__(self, message="\n This error can occur if the an account to which you are trying to log in has not denied the use of \"Wachtwoordsleutels\" \n To fix an issue log in with the browser (preferably using your pc) and click on \"Niet nu\" when you get the pop up about wachtwoordsleutels. If you don't get the pop up, you can try logging in again: using a different browser/ clearing cookies/ using a different IP address. \n For more information visit https://github.com/H3LL0U/MagisterPy/issues/15"):
+        super().__init__(message)
+        self.message = message

@@ -95,7 +95,7 @@ class LoginRequestsSender():
         if id_token:
             return id_token[0]  # Return the first id_token found
         else:
-            return None
+            raise PasswordKeyError()
 
     def get_profile_auth_token(self, request_session: requests.Session) -> str:
         url = r"https://accounts.magister.net/connect/authorize?client_id=iam-profile&redirect_uri=https%3A%2F%2Faccounts.magister.net%2Fprofile%2Foidc%2Fredirect_callback.html&response_type=id_token%20token&scope=openid%20profile%20email%20magister.iam.profile&state=57dcb9c3b667407791ff32a7af41e703&nonce=ec78d557c0e44751bf573db6719445cd"
