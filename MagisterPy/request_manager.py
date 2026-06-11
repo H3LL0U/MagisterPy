@@ -1,6 +1,7 @@
 import requests
 from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup
+from .magister_errors import *
 from .jsparser import *
 from typing import Optional
 
